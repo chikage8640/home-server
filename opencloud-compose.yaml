@@ -1,0 +1,62 @@
+services:
+  opencloud:
+    image: opencloudeu/opencloud-rolling:latest
+    user: "${UID}:${GID}"
+    entrypoint:
+      - /bin/sh
+    # run opencloud init to initialize a configuration file with random secrets
+    # it will fail on subsequent runs, because the config file already exists
+    # therefore we ignore the error and then start the opencloud server
+    command: ["-c", "opencloud init || true; opencloud server"]
+    environment:
+      OC_INSECURE: "false"
+      PROXY_TLS: "false"
+      OC_DEFAULT_LANGUAGE: "${OC_DEFAULT_LANGUAGE}"
+      OC_URL: "https://${OC_DOMAIN}"
+      # STORAGE_USERS_DRIVER: "decomposed"
+      STORAGE_USERS_DRIVER: "posix"
+      PROXY_CSP_CONFIG_FILE_LOCATION: /etc/opencloud/csp.yaml
+      FRONTEND_READONLY_USER_ATTRIBUTES: "user.onPremisesSamAccountName,user.displayName,user.mail,user.passwordProfile,user.accountEnabled,user.appRoleAssignments"
+      PROXY_OIDC_REWRITE_WELLKNOWN: "true"
+      OC_OIDC_CLIENT_ID: ${OC_OIDC_CLIENT_ID}
+      PROXY_ROLE_ASSIGNMENT_OIDC_CLAIM: ${PROXY_ROLE_ASSIGNMENT_OIDC_CLAIM:-roles}
+      PROXY_ROLE_ASSIGNMENT_DRIVER: ${PROXY_ROLE_ASSIGNMENT_DRIVER:-oidc}
+      OC_OIDC_ISSUER: "https://${IDP_DOMAIN}/realms/${KEYCLOAK_REALM}"
+      # This specifies to start all services except idm and idp. These are replaced by external services.
+      OC_EXCLUDE_RUN_SERVICES: idp
+      PROXY_AUTOPROVISION_ACCOUNTS: "true"
+      # Use the `sub` claim from the IdP for the user ID
+      # Most IdPs use the internal user ID as the `sub` claim
+      PROXY_USER_OIDC_CLAIM: "sub"
+      # Use the `sub` claim as identifier during autoprovisioning
+      # That mitigates problems when a user is renamed in the IdP
+      PROXY_AUTOPROVISION_CLAIM_USERNAME: "sub"
+      PROXY_USER_CS3_CLAIM: "username"
+      OC_ADMIN_USER_ID: ""
+      SETTINGS_SETUP_DEFAULT_ASSIGNMENTS: "false"
+      GRAPH_ASSIGN_DEFAULT_USER_ROLE: ${GRAPH_ASSIGN_DEFAULT_USER_ROLE:-false}
+      GRAPH_USERNAME_MATCH: "none"
+      # We need to set the IDP_DOMAIN to allow the CSP rules to be set correctly
+      IDP_DOMAIN: "${IDP_DOMAIN}"
+      # The openCloud users need to be able to edit their account in the externa IdP
+      WEB_OPTION_ACCOUNT_EDIT_LINK_HREF: "https://${IDP_DOMAIN}/realms/${KEYCLOAK_REALM}/account"
+    volumes:
+      - ./opencloud/config:/etc/opencloud
+      - ./opencloud/data:/var/lib/opencloud
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      # define middleware here, to make sure its loaded with the first defined container (opencloud)
+      # if defined in the traefik container with a disabled dashboard it won't be loaded fast enough
+      - "traefik.http.middlewares.hsts-header.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.hsts-header.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.hsts-header.headers.stsPreload=true"
+      - "traefik.http.middlewares.hsts-header.headers.forceSTSHeader=true"
+      - "traefik.http.routers.opencloud.entrypoints=https"
+      - "traefik.http.routers.opencloud.rule=Host(`${OC_DOMAIN}`)"
+      - "traefik.http.routers.opencloud.service=opencloud"
+      - "traefik.http.routers.opencloud.middlewares=hsts-header"
+      - "traefik.http.services.opencloud.loadbalancer.server.port=9200"
+      - "traefik.http.routers.opencloud.tls=true"
+      - "traefik.http.routers.opencloud.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.opencloud.tls.domains[0].main=${TRAEFIK_CERT_DOMAIN}"

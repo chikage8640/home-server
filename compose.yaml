@@ -1,0 +1,30 @@
+include:
+  - immich-compose.yaml
+  - opencloud-compose.yaml
+services:
+  traefik:
+    image: traefik:latest
+    networks:
+      default:
+        aliases:
+          - ${OC_DOMAIN}
+    environment:
+      TRAEFIK_LOG_LEVEL: "INFO"
+      TRAEFIK_API_DASHBOARD: "false"
+      TRAEFIK_PROVIDERS_DOCKER: "true"
+      TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT: "false"
+      TRAEFIK_ENTRYPOINTS_HTTP_ADDRESS: ":80"
+      TRAEFIK_ENTRYPOINTS_HTTPS_ADDRESS: ":443"
+      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL: "${ACME_EMAIL}"
+      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_STORAGE: "/etc/traefik/acme/acme.json"
+      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_KEYTYPE: "EC384"
+      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_DNSCHALLENGE: "true"
+      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_DNSCHALLENGE_PROVIDER: "cloudflare"
+      TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_DNSCHALLENGE_RESOLVERS: "1.1.1.1:53,1.0.0.1:53"
+      CF_DNS_API_TOKEN: "${CF_DNS_API_TOKEN}"
+    ports:
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/config:/etc/traefik
+    restart: always
