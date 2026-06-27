@@ -1,5 +1,2 @@
 .env
-/immich/data
-/immich/db
-/opencloud/config/*
-!/opencloud/config/csp.yaml
+/data

@@ -1,7 +1,7 @@
 services:
   opencloud:
     image: opencloudeu/opencloud-rolling:latest
-    user: "${UID}:${GID}"
+    user: "${CONTAINER_UID}:${CONTAINER_GID}"
     entrypoint:
       - /bin/sh
     # run opencloud init to initialize a configuration file with random secrets
@@ -13,8 +13,12 @@ services:
       PROXY_TLS: "false"
       OC_DEFAULT_LANGUAGE: "${OC_DEFAULT_LANGUAGE}"
       OC_URL: "https://${OC_DOMAIN}"
-      # STORAGE_USERS_DRIVER: "decomposed"
-      STORAGE_USERS_DRIVER: "posix"
+      STORAGE_USERS_DRIVER: "decomposeds3"
+      STORAGE_USERS_DECOMPOSEDS3_REGION: "garage"
+      STORAGE_USERS_DECOMPOSEDS3_ACCESS_KEY: "${STORAGE_USERS_DECOMPOSEDS3_ACCESS_KEY}"
+      STORAGE_USERS_DECOMPOSEDS3_SECRET_KEY: "${STORAGE_USERS_DECOMPOSEDS3_SECRET_KEY}"
+      STORAGE_USERS_DECOMPOSEDS3_ENDPOINT: "http://garage:3900"
+      STORAGE_USERS_DECOMPOSEDS3_BUCKET: "${STORAGE_USERS_DECOMPOSEDS3_BUCKET}"
       PROXY_CSP_CONFIG_FILE_LOCATION: /etc/opencloud/csp.yaml
       FRONTEND_READONLY_USER_ATTRIBUTES: "user.onPremisesSamAccountName,user.displayName,user.mail,user.passwordProfile,user.accountEnabled,user.appRoleAssignments"
       PROXY_OIDC_REWRITE_WELLKNOWN: "true"
@@ -41,8 +45,10 @@ services:
       # The openCloud users need to be able to edit their account in the externa IdP
       WEB_OPTION_ACCOUNT_EDIT_LINK_HREF: "https://${IDP_DOMAIN}/realms/${KEYCLOAK_REALM}/account"
     volumes:
-      - ./opencloud/config:/etc/opencloud
-      - ./opencloud/data:/var/lib/opencloud
+      - ${SSD_PATH}/opencloud/config:/etc/opencloud
+      - ${SSD_PATH}/opencloud/data:/var/lib/opencloud
+    depends_on:
+      - garage
     restart: always
     labels:
       - "traefik.enable=true"
@@ -60,3 +66,16 @@ services:
       - "traefik.http.routers.opencloud.tls=true"
       - "traefik.http.routers.opencloud.tls.certresolver=letsencrypt"
       - "traefik.http.routers.opencloud.tls.domains[0].main=${TRAEFIK_CERT_DOMAIN}"
+  garage:
+    image: dxflrs/garage:v2.3.0
+    user: "${CONTAINER_UID}:${CONTAINER_GID}"
+    environment:
+      GARAGE_DEFAULT_ACCESS_KEY: "${STORAGE_USERS_DECOMPOSEDS3_ACCESS_KEY}"
+      GARAGE_DEFAULT_SECRET_KEY: "${STORAGE_USERS_DECOMPOSEDS3_SECRET_KEY}"
+      GARAGE_DEFAULT_BUCKET: "${STORAGE_USERS_DECOMPOSEDS3_BUCKET}"
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    volumes:
+      - ${SSD_PATH}/garage/garage.toml:/etc/garage.toml
+      - ${SSD_PATH}/garage/meta:/var/lib/garage/meta
+      - ${HDD_PATH}/garage/data:/var/lib/garage/data
+    restart: always
