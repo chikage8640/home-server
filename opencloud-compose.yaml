@@ -48,7 +48,8 @@ services:
       - ${SSD_PATH}/opencloud/config:/etc/opencloud
       - ${SSD_PATH}/opencloud/data:/var/lib/opencloud
     depends_on:
-      - garage
+      garage:
+        condition: service_healthy
     restart: always
     labels:
       - "traefik.enable=true"
@@ -79,3 +80,8 @@ services:
       - ${SSD_PATH}/garage/meta:/var/lib/garage/meta
       - ${HDD_PATH}/garage/data:/var/lib/garage/data
     restart: always
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 10s
+      timeout: 10s
+      retries: 30

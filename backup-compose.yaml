@@ -1,0 +1,46 @@
+include:
+  - opencloud-compose.yaml
+  - immich-compose.yaml
+
+services:
+  rclone-backup:
+    build:
+      context: ./rclone
+      dockerfile: Dockerfile
+    image: rclone-zstd:latest
+    pull_policy: build
+    user: "${CONTAINER_UID}:${CONTAINER_GID}"
+    environment:
+      AWS_ACCESS_KEY_ID: ${STORAGE_USERS_DECOMPOSEDS3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${STORAGE_USERS_DECOMPOSEDS3_SECRET_KEY}
+      TZ: ${TZ}
+    volumes:
+      - ./rclone/config:/config/rclone
+      - ${SSD_PATH}/opencloud:/data/opencloud:ro
+      - ${HDD_PATH}/immich/data/library:/data/immich/library:ro
+      - ${HDD_PATH}/immich/data/profile:/data/immich/profile:ro
+      - ${HDD_PATH}/immich/data/upload:/data/immich/upload:ro
+      - ${SSD_PATH}/rclone/dump:/data/dump:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      'rclone sync garage:opencloud backup:garage & \
+       tar cO opencloud | zstd | rclone rcat backup:opencloud/$$(date "+%Y_%m_%d_%H_%M_%S").tar.zst & \
+       rclone sync /data/immich backup:immich-data & \
+       rclone copyto /data/dump/dump.sql.gz backup:immich-database/$$(date "+%Y_%m_%d_%H_%M_%S").sql.gz & \
+       wait'
+    depends_on:
+      garage:
+        condition: service_healthy
+      immich-database:
+        condition: service_healthy
+
+  immich-database:
+    entrypoint: ["/backup/postgres-dump-entrypoint.sh"]
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    volumes:
+      - ${SSD_PATH}/rclone/dump:/backup
+    healthcheck:
+      test: "test -f /tmp/backup-done"
+      interval: 1s
+      timeout: 1m
+      retries: 60

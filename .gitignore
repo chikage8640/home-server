@@ -1,2 +1,5 @@
 .env
+rclone.conf
+/rclone/*
+!/rclone/rclone.conf.sample
 /data
