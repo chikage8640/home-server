@@ -9,7 +9,7 @@ set -a
 source .env
 set +a
 
-mkdir -p ${SSD_PATH}/traefik/config
+mkdir -p ${SSD_PATH}/traefik/config/acme
 mkdir -p ${HDD_PATH}/immich/data/backups
 mkdir -p ${HDD_PATH}/immich/data/library
 mkdir -p ${HDD_PATH}/immich/data/profile
@@ -20,6 +20,9 @@ mkdir -p ${SSD_PATH}/opencloud/data
 mkdir -p ${SSD_PATH}/garage/meta
 mkdir -p ${HDD_PATH}/garage/data
 mkdir -p ${SSD_PATH}/rclone/dump
+
+touch ${SSD_PATH}/traefik/config/acme/acme.json
+chmod 600 ${SSD_PATH}/traefik/config/acme/acme.json
 
 cp ./csp.yaml ${SSD_PATH}/opencloud/config/csp.yaml
 cp ./postgres-dump-entrypoint.sh ${SSD_PATH}/rclone/dump/postgres-dump-entrypoint.sh
