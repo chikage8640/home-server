@@ -22,16 +22,16 @@ services:
       - ${HDD_PATH}/immich/data/upload:/data/immich/upload
     entrypoint: ["/bin/sh", "-c"]
     command: |
-      'rclone lsl backup:opencloud
+      'rclone lsl backup-opencloud:
        echo Enter filename to restore opencloud: 
        read OC_ARCHIVE
-       rclone lsl backup:immich-database
+       rclone lsl backup-immich-database:
        echo Enter filename to restore immich-database: 
        read IM_ARCHIVE
-       rclone sync backup:garage garage:opencloud & \
-       rclone cat backup:opencloud/$$OC_ARCHIVE | zstd -d | tar xf - & \
-       rclone sync backup:immich-data /data/immich & \
-       rclone copyto backup:immich-database/$$IM_ARCHIVE /data/immich/backups/$$IM_ARCHIVE & \
+       rclone sync backup-garage: garage:opencloud & \
+       rclone cat backup-opencloud:$$OC_ARCHIVE | zstd -d | tar xf - & \
+       rclone sync backup-immich-data: /data/immich & \
+       rclone copyto backup-immich-database:$$IM_ARCHIVE /data/immich/backups/$$IM_ARCHIVE & \
        wait'
     tty: true
     stdin_open: true

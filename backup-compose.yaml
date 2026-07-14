@@ -23,10 +23,10 @@ services:
       - ${SSD_PATH}/rclone/dump:/data/dump:ro
     entrypoint: ["/bin/sh", "-c"]
     command: |
-      'rclone sync garage:opencloud backup:garage & \
-       tar cO opencloud | zstd | rclone rcat backup:opencloud/$$(date "+%Y_%m_%d_%H_%M_%S").tar.zst & \
-       rclone sync /data/immich backup:immich-data & \
-       rclone copyto /data/dump/dump.sql.gz backup:immich-database/$$(date "+%Y_%m_%d_%H_%M_%S").sql.gz & \
+      'rclone sync garage:opencloud backup-garage: & \
+       tar cO opencloud | zstd | rclone rcat backup-opencloud:$$(date "+%Y_%m_%d_%H_%M_%S").tar.zst & \
+       rclone sync /data/immich backup-immich-data: & \
+       rclone copyto /data/dump/dump.sql.gz backup-immich-database:$$(date "+%Y_%m_%d_%H_%M_%S").sql.gz & \
        wait'
     depends_on:
       garage:
