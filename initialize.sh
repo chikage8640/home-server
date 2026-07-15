@@ -25,8 +25,6 @@ touch ${SSD_PATH}/traefik/config/acme/acme.json
 chmod 600 ${SSD_PATH}/traefik/config/acme/acme.json
 
 cp ./csp.yaml ${SSD_PATH}/opencloud/config/csp.yaml
-cp ./postgres-dump-entrypoint.sh ${SSD_PATH}/rclone/dump/postgres-dump-entrypoint.sh
-chmod +x ${SSD_PATH}/rclone/dump/postgres-dump-entrypoint.sh
 
 cat > ${SSD_PATH}/garage/garage.toml <<EOF
 metadata_dir = "/var/lib/garage/meta"

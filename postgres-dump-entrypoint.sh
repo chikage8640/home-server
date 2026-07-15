@@ -16,7 +16,10 @@ do
 done
 
 # ダンプ取得
-pg_dump --clean --if-exists --dbname="$POSTGRES_DB" --username="$POSTGRES_USER" | gzip -f > /backup/dump.sql.gz
+pg_dump --clean --if-exists --dbname="$POSTGRES_DB" --username="$POSTGRES_USER" | gzip -f > /backups/server-side-immich-db-backup-$(date +"%Y%m%dT%H%M%S").sql.gz
+
+# 180日以上前のバックアップを削除
+find /backups -type f -name "server-side-immich-db-backup-*.sql.gz" -mtime +180 -delete
 
 # ヘルスチェックで反応するフラグを立てる
 touch /tmp/backup-done

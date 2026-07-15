@@ -17,16 +17,15 @@ services:
     volumes:
       - ./rclone/config:/config/rclone
       - ${SSD_PATH}/opencloud:/data/opencloud:ro
+      - ${HDD_PATH}/immich/data/backups:/data/immich/backups:ro
       - ${HDD_PATH}/immich/data/library:/data/immich/library:ro
       - ${HDD_PATH}/immich/data/profile:/data/immich/profile:ro
       - ${HDD_PATH}/immich/data/upload:/data/immich/upload:ro
-      - ${SSD_PATH}/rclone/dump:/data/dump:ro
     entrypoint: ["/bin/sh", "-c"]
     command: |
       'rclone sync garage:opencloud backup-garage: & \
        tar cO opencloud | zstd | rclone rcat backup-opencloud:$$(date "+%Y_%m_%d_%H_%M_%S").tar.zst & \
        rclone sync /data/immich backup-immich-data: & \
-       rclone copyto /data/dump/dump.sql.gz backup-immich-database:$$(date "+%Y_%m_%d_%H_%M_%S").sql.gz & \
        wait'
     depends_on:
       garage:
@@ -37,8 +36,11 @@ services:
   immich-database:
     entrypoint: ["/backup/postgres-dump-entrypoint.sh"]
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    environment:
+      TZ: ${TZ}
     volumes:
-      - ${SSD_PATH}/rclone/dump:/backup
+      - ${HDD_PATH}/immich/data/backups:/backups
+      - ./postgres-dump-entrypoint.sh:/backup/postgres-dump-entrypoint.sh:ro
     healthcheck:
       test: "test -f /tmp/backup-done"
       interval: 1s

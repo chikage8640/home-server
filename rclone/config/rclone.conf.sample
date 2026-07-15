@@ -5,3 +5,29 @@ env_auth = true
 endpoint = http://garage:3900
 region = garage
 
+[backup-garage]
+type = crypt
+remote = s3:home-backup-garage
+filename_encoding = base64
+suffix = none
+
+[backup-opencloud]
+type = crypt
+remote = s3:home-backup-opencloud
+filename_encoding = base64
+suffix = none
+
+[backup-immich-data]
+type = crypt
+remote = s3:home-backup-immich-data
+filename_encoding = base64
+suffix = none
+
+[s3]
+type = s3
+provider = AWS
+access_key_id = your-access-key-id
+secret_access_key = your-secret-access-key
+region = us-east-1
+server_side_encryption = AES256
+storage_class = DEEP_ARCHIVE

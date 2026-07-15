@@ -20,21 +20,36 @@ services:
       - ${HDD_PATH}/immich/data/library:/data/immich/library
       - ${HDD_PATH}/immich/data/profile:/data/immich/profile
       - ${HDD_PATH}/immich/data/upload:/data/immich/upload
+      - ${SSD_PATH}/rclone/dump:/data/opencloud-dump
     entrypoint: ["/bin/sh", "-c"]
     command: |
       'rclone lsl backup-opencloud:
        echo Enter filename to restore opencloud: 
        read OC_ARCHIVE
-       rclone lsl backup-immich-database:
-       echo Enter filename to restore immich-database: 
-       read IM_ARCHIVE
-       rclone sync backup-garage: garage:opencloud & \
-       rclone cat backup-opencloud:$$OC_ARCHIVE | zstd -d | tar xf - & \
        rclone sync backup-immich-data: /data/immich & \
-       rclone copyto backup-immich-database:$$IM_ARCHIVE /data/immich/backups/$$IM_ARCHIVE & \
+       rclone sync backup-garage: garage:opencloud & \
+       rclone sync backup-opencloud: /data/opencloud-dump && \
+       cat /data/opencloud-dump/$$OC_ARCHIVE | zstd -d | tar xf - & \
        wait'
     tty: true
     stdin_open: true
     depends_on:
       garage:
         condition: service_healthy
+  rclone-restore-request:
+    build:
+      context: ./rclone
+      dockerfile: Dockerfile
+    image: rclone-zstd:latest
+    pull_policy: build
+    user: "${CONTAINER_UID}:${CONTAINER_GID}"
+    environment:
+      TZ: ${TZ}
+    volumes:
+      - ./rclone/config:/config/rclone
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      'rclone backend restore s3-deep-archive:home-backup-garage -o priority=Bulk -o lifetime=5 & \
+       rclone backend restore s3-deep-archive:home-backup-opencloud -o priority=Bulk -o lifetime=5 & \
+       rclone backend restore s3-deep-archive:home-backup-immich-data -o priority=Bulk -o lifetime=5 & \
+       wait'
