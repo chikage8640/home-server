@@ -49,7 +49,7 @@ services:
       - ./rclone/config:/config/rclone
     entrypoint: ["/bin/sh", "-c"]
     command: |
-      'rclone backend restore s3-deep-archive:home-backup-garage -o priority=Bulk -o lifetime=5 & \
-       rclone backend restore s3-deep-archive:home-backup-opencloud -o priority=Bulk -o lifetime=5 & \
-       rclone backend restore s3-deep-archive:home-backup-immich-data -o priority=Bulk -o lifetime=5 & \
+      'rclone backend restore s3:home-backup-garage -o priority=Bulk -o lifetime=5 & \
+       rclone backend restore s3:home-backup-opencloud -o priority=Bulk -o lifetime=5 & \
+       rclone backend restore s3:home-backup-immich-data -o priority=Bulk -o lifetime=5 & \
        wait'
