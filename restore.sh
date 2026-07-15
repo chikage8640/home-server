@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-cd $(dirname $0)
+cd "$(dirname "$0")"
 
 bash ./initialize.sh && \
 sudo docker compose -f restore-compose.yaml build --pull ; \

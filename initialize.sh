@@ -1,5 +1,7 @@
 #/bin/bash
 
+cd "$(dirname "$0")"
+
 if [ ! -f .env ]; then
   echo ".envファイルが存在しません。"
   exit 1
@@ -51,4 +53,17 @@ index = "index.html"
 api_bind_addr = "[::]:3903"
 admin_token = "$(openssl rand -base64 32)"
 metrics_token = "$(openssl rand -base64 32)"
+EOF
+
+cat > /etc/systemd/system/home-server-resume.service <<EOF
+[Unit]
+Description=Resume backup task
+ConditionPathExists=/var/lib/home-server/service-start-required
+
+[Service]
+Type=oneshot
+ExecStart=$(pwd)/backup-and-update.sh --rebooted
+
+[Install]
+WantedBy=multi-user.target
 EOF
