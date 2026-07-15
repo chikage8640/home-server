@@ -55,7 +55,11 @@ admin_token = "$(openssl rand -base64 32)"
 metrics_token = "$(openssl rand -base64 32)"
 EOF
 
-cat > /etc/systemd/system/home-server-resume.service <<EOF
+# ここからroot
+
+sudo mkdir -p /var/lib/home-server
+
+cat <<EOF | sudo tee /etc/systemd/system/home-server-resume.service > /dev/null
 [Unit]
 Description=Resume backup task
 ConditionPathExists=/var/lib/home-server/service-start-required
@@ -63,7 +67,11 @@ ConditionPathExists=/var/lib/home-server/service-start-required
 [Service]
 Type=oneshot
 ExecStart=$(pwd)/backup-and-update.sh --rebooted
+User=root
 
 [Install]
 WantedBy=multi-user.target
 EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable home-server-resume.service
