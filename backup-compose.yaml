@@ -23,9 +23,9 @@ services:
       - ${HDD_PATH}/immich/data/upload:/data/immich/upload:ro
     entrypoint: ["/bin/sh", "-c"]
     command: |
-      'rclone sync garage:opencloud backup-garage: --progress --fast-list & \
+      'rclone sync garage:opencloud backup-garage: --fast-list & \
        tar cO opencloud | zstd | rclone rcat backup-opencloud:$$(date "+%Y_%m_%d_%H_%M_%S").tar.zst & \
-       rclone sync /data/immich backup-immich-data: --progress --fast-list & \
+       rclone sync /data/immich backup-immich-data: --fast-list & \
        wait'
     depends_on:
       garage:
