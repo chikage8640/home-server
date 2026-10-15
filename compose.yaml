@@ -10,7 +10,7 @@ services:
           - ${OC_DOMAIN}
     environment:
       TRAEFIK_LOG_LEVEL: "INFO"
-      TRAEFIK_API_DASHBOARD: "false"
+      TRAEFIK_API: "true"
       TRAEFIK_PROVIDERS_DOCKER: "true"
       TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT: "false"
       TRAEFIK_ENTRYPOINTS_HTTP_ADDRESS: ":80"
@@ -22,6 +22,20 @@ services:
       TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_DNSCHALLENGE_PROVIDER: "cloudflare"
       TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_DNSCHALLENGE_RESOLVERS: "1.1.1.1:53,1.0.0.1:53"
       CF_DNS_API_TOKEN: "${CF_DNS_API_TOKEN}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`${TRAEFIK_DOMAIN}`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=https"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.middlewares=hsts-header,dashboard-ipallowlist,dashboard-auth"
+      - "traefik.http.routers.traefik-dashboard.tls=true"
+      - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.hsts-header.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.hsts-header.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.hsts-header.headers.stsPreload=true"
+      - "traefik.http.middlewares.hsts-header.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.dashboard-ipallowlist.ipallowlist.sourcerange=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.1/32,fc00::/7,::1/128"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_BASICAUTH_USERS}"
     ports:
       - "443:443"
     volumes:
