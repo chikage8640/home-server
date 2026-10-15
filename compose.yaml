@@ -3,7 +3,13 @@ include:
   - opencloud-compose.yaml
 services:
   traefik:
-    image: traefik:latest
+    image: traefik-geoblock:latest
+    pull_policy: build
+    build:
+      context: ./traefik
+      args:
+        GEOBLOCK_VERSION: "${GEOBLOCK_VERSION:-}"
+        TRAEFIK_BASE_IMAGE: "${TRAEFIK_BASE_IMAGE:-traefik:latest}"
     networks:
       default:
         aliases:
@@ -15,6 +21,11 @@ services:
       TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT: "false"
       TRAEFIK_ENTRYPOINTS_HTTP_ADDRESS: ":80"
       TRAEFIK_ENTRYPOINTS_HTTPS_ADDRESS: ":443"
+      TRAEFIK_ENTRYPOINTS_HTTP_PROXYPROTOCOL_TRUSTEDIPS: "${PROXY_PROTOCOL_TRUSTED_IPS}"
+      TRAEFIK_ENTRYPOINTS_HTTPS_PROXYPROTOCOL_TRUSTEDIPS: "${PROXY_PROTOCOL_TRUSTED_IPS}"
+      TRAEFIK_EXPERIMENTAL_LOCALPLUGINS_GEOBLOCK_MODULENAME: "github.com/david-garcia-garcia/traefik-geoblock"
+      TRAEFIK_EXPERIMENTAL_LOCALPLUGINS_GEOBLOCK_SETTINGS_USEUNSAFE: "true"
+      TRAEFIK_PLUGIN_GEOBLOCK_PATH: "/plugins-local/src/github.com/david-garcia-garcia/traefik-geoblock"
       TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_EMAIL: "${ACME_EMAIL}"
       TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_STORAGE: "/etc/traefik/acme/acme.json"
       TRAEFIK_CERTIFICATESRESOLVERS_LETSENCRYPT_ACME_KEYTYPE: "EC384"
@@ -34,6 +45,24 @@ services:
       - "traefik.http.middlewares.hsts-header.headers.stsIncludeSubdomains=true"
       - "traefik.http.middlewares.hsts-header.headers.stsPreload=true"
       - "traefik.http.middlewares.hsts-header.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.mode=enrichandblock"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.defaultAllow=false"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.allowPrivate=true"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.banIfError=true"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.disallowedStatusCode=403"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.allowedCountries=JP"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.ipHeaders=remoteAddress"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.ipHeaderStrategy=CheckFirst"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.ignoreVerbs="
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.databaseAutoUpdateDir=/data/geoblock"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.databaseSources.default_ip2location.enabled=false"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.databaseSources.default_maxmind.enabled=true"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.databaseSources.default_maxmind.databaseType=mmdb"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.databaseSources.default_maxmind.archive=tar.gz"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.databaseSources.default_maxmind.defaultFile=GeoIP2-Country-Test.mmdb"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.databaseSources.default_maxmind.fieldsPreconfigured=maxmind_country"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.databaseSources.default_maxmind.url=https://download.maxmind.com/geoip/databases/GeoLite2-Country/download?suffix=tar.gz"
+      - "traefik.http.middlewares.geoblock.plugin.geoblock.databaseSources.default_maxmind.headers.Authorization=Basic ${MAXMIND_AUTH_BASE64}"
       - "traefik.http.middlewares.dashboard-ipallowlist.ipallowlist.sourcerange=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.1/32,fc00::/7,::1/128"
       - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_BASICAUTH_USERS}"
     ports:
@@ -41,4 +70,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${SSD_PATH}/traefik/config:/etc/traefik
+      - geoblock-db:/data/geoblock
     restart: always
+
+volumes:
+  geoblock-db:

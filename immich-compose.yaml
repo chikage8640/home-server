@@ -28,7 +28,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.immich-server.entrypoints=https"
       - "traefik.http.routers.immich-server.rule=Host(`${IM_DOMAIN}`)"
-      - "traefik.http.routers.immich-server.middlewares=hsts-header"
+      - "traefik.http.routers.immich-server.middlewares=hsts-header,geoblock"
       - "traefik.http.services.immich-server.loadbalancer.server.port=2283"
       - "traefik.http.routers.immich-server.tls=true"
       - "traefik.http.routers.immich-server.tls.certresolver=letsencrypt"
